@@ -1,0 +1,23 @@
+{
+  "name": "yoi",
+  "short_name": "yoi",
+  "description": "シンプルな家計簿アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F6F4",
+  "theme_color": "#4E8C73",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
