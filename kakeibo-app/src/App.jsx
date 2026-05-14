@@ -145,8 +145,8 @@ const T = {
   months:["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
   dowS:["月","火","水","木","金","土","日"],
   dowL:["月曜","火曜","水曜","木曜","金曜","土曜","日曜"],
-  accounts:"資産", totalAssets:"総資産",
-  addAccount:"資産を追加", editAccount:"資産を編集",
+  accounts:"純資産", totalAssets:"総資産",
+  addAccount:"純資産を追加", editAccount:"純資産を編集",
   subscriptions:"サブスクリプション", addSub:"追加", editSub:"編集",
   subPerMonth:"/ 月", subCycleMonthly:"毎月", subCycleYearly:"毎年",
   savings:"貯金",
@@ -174,8 +174,8 @@ const INC_BASE = [
   {id:"i4", name:"その他", icon:"box",     color:"#10B981"},
 ];
 const DEFAULT_ACCOUNTS = [
-  {id:"a1", name:"普通口座",   bank:"",  balance:0,  color:"#2F7FD4", isSavings:false},
-  {id:"a2", name:"貯金口座",   bank:"", balance:0,  color:"#16A34A", isSavings:true},
+  {id:"a1", name:"普通口座",   bank:"",  balance:0, initialBalance:0, color:"#2F7FD4", isSavings:false},
+  {id:"a2", name:"貯金口座",   bank:"", balance:0, initialBalance:0, color:"#16A34A", isSavings:true},
 ];
 const DEFAULT_SUBS = [];
 
@@ -330,8 +330,8 @@ function CatModal(props){
   }
   function stop(e){ e.stopPropagation(); }
   return (
-    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={props.onClose}>
-      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px 44px",maxHeight:"90vh",overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",overscrollBehavior:"contain"}} onClick={props.onClose}>
+      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px calc(env(safe-area-inset-bottom, 0px) + 60px)",maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{width:36,height:4,background:C.border,borderRadius:2,margin:"0 auto 14px"}}/>
         <div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:C.textMuted,marginBottom:14}}>{cat?"カテゴリーを編集":"カテゴリーを追加"}</div>
         <label style={lbl}>アイコン</label>
@@ -378,6 +378,7 @@ function CatModal(props){
 function SubModal(props){
   const sub = props.sub;
   const cats = props.cats || [];
+  const accounts = props.accounts || [];
   const COLORS = ["#E50914","#1DB954","#3B82F6","#9333EA","#F59E0B","#0891B2","#111827","#EF4444","#F97316","#6366F1"];
   const initId = sub ? sub.id : Date.now();
   const [name, setName] = useState(sub ? sub.name : "");
@@ -387,16 +388,21 @@ function SubModal(props){
   const [color, setColor] = useState(sub ? sub.color : C.blue);
   const [split, setSplit] = useState(sub ? sub.split : "want");
   const [catId, setCatId] = useState(sub && sub.catId !== undefined ? sub.catId : null);
+  const [billingDay, setBillingDay] = useState(sub && sub.billingDay ? String(sub.billingDay) : "1");
+  const [accountId, setAccountId] = useState(sub && sub.accountId !== undefined ? sub.accountId : null);
   const inp = {background:C.surfaceAlt,border:"1.5px solid "+C.border,color:C.text,fontFamily:"inherit",outline:"none",borderRadius:10,padding:"10px 12px",width:"100%",boxSizing:"border-box",fontSize:14};
   const lbl = {fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:C.textMuted,display:"block",marginBottom:6};
   function save(){
     if(!name || !parseFloat(amount)) return;
-    props.onSave({id:initId, name:name, amount:parseFloat(amount), cycle:cycle, note:note, color:color, split:split, catId:catId});
+    var bd = parseInt(billingDay, 10);
+    if(isNaN(bd) || bd < 1) bd = 1;
+    if(bd > 31) bd = 31;
+    props.onSave({id:initId, name:name, amount:parseFloat(amount), cycle:cycle, note:note, color:color, split:split, catId:catId, billingDay:bd, accountId:accountId});
   }
   function stop(e){ e.stopPropagation(); }
   return (
-    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={props.onClose}>
-      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px 44px",maxHeight:"90vh",overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",overscrollBehavior:"contain"}} onClick={props.onClose}>
+      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px calc(env(safe-area-inset-bottom, 0px) + 60px)",maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{width:36,height:4,background:C.border,borderRadius:2,margin:"0 auto 14px"}}/>
         <div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:C.textMuted,marginBottom:14}}>{sub?T.editSub:T.addSub}</div>
         <div style={{marginBottom:12}}><label style={lbl}>名前</label><input value={name} onChange={function(e){setName(e.target.value);}} placeholder="Netflix…" style={inp}/></div>
@@ -406,6 +412,30 @@ function SubModal(props){
           <div style={{display:"flex",background:C.surfaceAlt,borderRadius:12,padding:4,gap:4}}>
             <button onClick={function(){setCycle("monthly");}} style={{flex:1,padding:"9px",border:"none",borderRadius:9,fontFamily:"inherit",cursor:"pointer",background:cycle==="monthly"?C.blue:"transparent",color:cycle==="monthly"?"#fff":C.textMuted,fontSize:13,fontWeight:600}}>{T.subCycleMonthly}</button>
             <button onClick={function(){setCycle("yearly");}} style={{flex:1,padding:"9px",border:"none",borderRadius:9,fontFamily:"inherit",cursor:"pointer",background:cycle==="yearly"?C.blue:"transparent",color:cycle==="yearly"?"#fff":C.textMuted,fontSize:13,fontWeight:600}}>{T.subCycleYearly}</button>
+          </div>
+        </div>
+        {/* Billing day */}
+        <div style={{marginBottom:12}}>
+          <label style={lbl}>引落日（毎月）</label>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <input type="number" min="1" max="31" value={billingDay} onChange={function(e){setBillingDay(e.target.value);}} style={Object.assign({},inp,{width:80,textAlign:"center",fontWeight:700})}/>
+            <span style={{fontSize:13,color:C.textMid}}>日</span>
+            <span style={{fontSize:11,color:C.textMuted,marginLeft:6}}>※1〜31日の範囲で指定</span>
+          </div>
+        </div>
+        {/* Account selector */}
+        <div style={{marginBottom:12}}>
+          <label style={lbl}>引落口座（任意）</label>
+          <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4}}>
+            <button onClick={function(){setAccountId(null);}} style={{padding:"6px 12px",borderRadius:99,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",border:"1.5px solid "+(accountId===null?C.blue:C.border),background:accountId===null?C.blueDim:C.surfaceAlt,color:accountId===null?C.blue:C.textMid,fontSize:12,fontWeight:accountId===null?700:400}}>指定なし</button>
+            {accounts.map(function(acc){
+              var active = accountId === acc.id;
+              return (
+                <button key={acc.id} onClick={function(){setAccountId(acc.id);}} style={{padding:"6px 12px",borderRadius:99,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",border:"1.5px solid "+(active?acc.color:C.border),background:active?acc.color+"18":C.surfaceAlt,color:active?acc.color:C.textMid,fontSize:12,fontWeight:active?700:400,display:"flex",alignItems:"center",gap:5}}>
+                  <Icon name={acc.isSavings?"piggy":"bank"} size={12} color={active?acc.color:C.textMid}/>{acc.name}
+                </button>
+              );
+            })}
           </div>
         </div>
         {/* Category selector */}
@@ -475,19 +505,21 @@ function AccountModal(props){
       if(txType === "deposit") finalBalance = account.balance + ta;
       else finalBalance = account.balance - ta;
     }
-    props.onSave({id:initId, name:name, bank:bank, balance:finalBalance, color:color, isSavings:isSavings});
+    // Preserve initialBalance on edit; set to current balance on new creation
+    var initialBalance = account && account.initialBalance !== undefined ? account.initialBalance : finalBalance;
+    var initialBalanceSet = account ? !!account.initialBalanceSet : (finalBalance !== 0);
+    props.onSave({id:initId, name:name, bank:bank, balance:finalBalance, initialBalance:initialBalance, initialBalanceSet:initialBalanceSet, color:color, isSavings:isSavings});
   }
   function stop(e){ e.stopPropagation(); }
   function toggleSavings(){ setIsSavings(!isSavings); }
 
   return (
-    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={props.onClose}>
-      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px 44px",maxHeight:"90vh",overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",overscrollBehavior:"contain"}} onClick={props.onClose}>
+      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px calc(env(safe-area-inset-bottom, 0px) + 60px)",maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{width:36,height:4,background:C.border,borderRadius:2,margin:"0 auto 14px"}}/>
         <div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:C.textMuted,marginBottom:14}}>{account?T.editAccount:T.addAccount}</div>
 
         <div style={{marginBottom:12}}><label style={lbl}>名称</label><input value={name} onChange={function(e){setName(e.target.value);}} placeholder="普通口座" style={inp}/></div>
-        <div style={{marginBottom:12}}><label style={lbl}>金融機関・種別</label><input value={bank} onChange={function(e){setBank(e.target.value);}} placeholder="三菱UFJ銀行" style={inp}/></div>
 
         {/* Existing account: show current balance + deposit/withdraw UI */}
         {account ? (
@@ -529,14 +561,14 @@ function AccountModal(props){
           <Icon name="piggy" size={20} color={isSavings?C.green:C.textMuted}/>
           <div style={{flex:1}}>
             <div style={{fontSize:13,fontWeight:600,color:isSavings?C.green:C.text}}>貯金口座</div>
-            <div style={{fontSize:11,color:C.textMuted}}>この資産の残高を貯金に反映</div>
+            <div style={{fontSize:11,color:C.textMuted}}>この純資産の残高を貯金に反映</div>
           </div>
           <div style={{width:20,height:20,borderRadius:"50%",border:"2px solid "+(isSavings?C.green:C.border),background:isSavings?C.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>
             {isSavings && <div style={{width:8,height:8,borderRadius:"50%",background:"#fff"}}/>}
           </div>
         </div>
         <button onClick={save} style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:C.blue,color:"#fff",fontSize:14,fontWeight:700,fontFamily:"inherit",cursor:"pointer"}}>{T.save}</button>
-        {account && props.onDelete && <button onClick={function(){props.onDelete(account.id);props.onClose();}} style={{width:"100%",marginTop:10,padding:"13px",borderRadius:14,border:"1.5px solid "+C.red,background:C.redBg,color:C.red,fontSize:13,fontWeight:700,fontFamily:"inherit",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon name="trash" size={15} color={C.red}/>この資産を削除する</button>}
+        {account && props.onDelete && <button onClick={function(){props.onDelete(account.id);props.onClose();}} style={{width:"100%",marginTop:10,padding:"13px",borderRadius:14,border:"1.5px solid "+C.red,background:C.redBg,color:C.red,fontSize:13,fontWeight:700,fontFamily:"inherit",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Icon name="trash" size={15} color={C.red}/>この純資産を削除する</button>}
       </div>
     </div>
   );
@@ -587,12 +619,12 @@ function AddModal(props){
   }
 
   // Account picker label based on type
-  var accountLabel = "口座（任意）";
-  if(txType === "income") accountLabel = "支出元（任意）";
+  var accountLabel = "支出元（任意）";
+  if(txType === "income") accountLabel = "収入先（任意）";
 
   return (
-    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={props.onClose}>
-      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px 44px",maxHeight:"92vh",overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",overscrollBehavior:"contain"}} onClick={props.onClose}>
+      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px calc(env(safe-area-inset-bottom, 0px) + 60px)",maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{width:36,height:4,background:C.border,borderRadius:2,margin:"0 auto 14px"}}/>
         <div style={{fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:C.textMuted,marginBottom:12}}>{editTx?T.editEntry:T.newEntry}</div>
 
@@ -919,7 +951,21 @@ function CatStatRow(props){
 // ─── SubRow ──
 function SubRow(props){
   const sub = props.sub;
+  const accounts = props.accounts || [];
   const pm = sub.cycle === "yearly" ? sub.amount/12 : sub.amount;
+  // Find linked account
+  var linkedAcc = null;
+  if(sub.accountId){
+    for(var i=0; i<accounts.length; i++){
+      if(accounts[i].id === sub.accountId){ linkedAcc = accounts[i]; break; }
+    }
+  }
+  // Build info line
+  var infoParts = [];
+  if(sub.note) infoParts.push(sub.note);
+  infoParts.push(sub.cycle==="yearly" ? fmtEur(sub.amount)+"/年" : "毎月");
+  if(sub.billingDay) infoParts.push(sub.billingDay+"日");
+  if(linkedAcc) infoParts.push(linkedAcc.name);
   return (
     <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 16px",borderTop:"1px solid "+C.border}}>
       <div style={{width:32,height:32,borderRadius:8,background:sub.color+"18",border:"1.5px solid "+sub.color+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -927,7 +973,7 @@ function SubRow(props){
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>{sub.name}</div>
-        <div style={{fontSize:10,color:C.textMuted}}>{sub.note?sub.note+" · ":""}{sub.cycle==="yearly"?fmtEur(sub.amount)+"/年":"毎月"}</div>
+        <div style={{fontSize:10,color:C.textMuted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{infoParts.join(" · ")}</div>
       </div>
       <div style={{textAlign:"right",flexShrink:0}}>
         <div style={{fontSize:13,fontWeight:700,color:C.blue}}>{fmtEur(pm)}</div>
@@ -941,6 +987,58 @@ function SubRow(props){
 }
 
 // ─── SettingsCatRow ──
+// ─── BalanceInput ──
+// Controlled text input that preserves user's exact typing
+function BalanceInput(props){
+  const propValue = props.value !== undefined && props.value !== null ? props.value : 0;
+  const [text, setText] = useState(String(propValue));
+  const [focused, setFocused] = useState(false);
+
+  // Sync from props when not focused (so external changes are reflected)
+  useEffect(function(){
+    if(!focused){
+      setText(String(propValue));
+    }
+  }, [propValue, focused]);
+
+  function handleChange(e){
+    var v = e.target.value;
+    setText(v);
+    if(v === "" || v === "-" || v === "."){
+      props.onChange(0);
+      return;
+    }
+    var num = parseFloat(v);
+    if(!isNaN(num)){
+      props.onChange(num);
+    }
+  }
+  function handleFocus(){ setFocused(true); }
+  function handleBlur(){
+    setFocused(false);
+    if(text === "" || text === "-" || text === "."){
+      setText("0");
+      props.onChange(0);
+    } else {
+      // Normalize the displayed text to the actual numeric value
+      var num = parseFloat(text);
+      if(!isNaN(num)) setText(String(num));
+    }
+  }
+  return (
+    <input
+      type="number"
+      step="0.01"
+      inputMode="decimal"
+      value={text}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      style={props.style}
+    />
+  );
+}
+
 function SettingsCatRow(props){
   const [open, setOpen] = useState(false);
   const cat = props.cat;
@@ -1057,15 +1155,14 @@ function SavingsLineChart(props){
 
 // ─── Data persistence / migration ──
 const STORAGE_KEY = "yoi_data_v2";
+const APP_VERSION = "2.0.0";
 const DATA_VERSION = 2;
 
 function migrateData(data){
   if(!data) return null;
-  // Migrate to current version (DATA_VERSION = 1 currently)
-  // Future migrations example:
-  // if((data.version || 0) < 2) { data.txs.forEach(function(t){ if(!t.tags) t.tags = []; }); data.version = 2; }
+  // Migrate to current version (DATA_VERSION = 2 currently)
   if(!data.version) data.version = 1;
-  // Ensure all fields exist with defaults
+  // Ensure all top-level fields exist with defaults
   if(!data.txs) data.txs = [];
   if(!data.cats) data.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
   if(!data.accounts) data.accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
@@ -1073,6 +1170,33 @@ function migrateData(data){
   if(!data.savingsHistory) data.savingsHistory = [];
   if(!data.settings) data.settings = {};
   if(data.settings.monthStartDay === undefined) data.settings.monthStartDay = 1;
+
+  // Account migrations: ensure all new fields exist
+  for(var i=0; i<data.accounts.length; i++){
+    var a = data.accounts[i];
+    // initialBalance: defaults to current balance (so existing users see their balance as initial)
+    if(a.initialBalance === undefined) a.initialBalance = a.balance || 0;
+    // initialBalanceSet: mark existing accounts as "already set" so editing only changes initial (delta-based)
+    if(a.initialBalanceSet === undefined) a.initialBalanceSet = true;
+    // bank: default empty string for old data without this field
+    if(a.bank === undefined) a.bank = "";
+  }
+
+  // Subscription migrations: ensure new fields exist
+  for(var j=0; j<data.subs.length; j++){
+    var s = data.subs[j];
+    if(s.billingDay === undefined) s.billingDay = 1;
+    if(s.accountId === undefined) s.accountId = null;
+    if(s.catId === undefined) s.catId = null;
+  }
+
+  // Transaction migrations
+  for(var k=0; k<data.txs.length; k++){
+    var t = data.txs[k];
+    if(t.accountId === undefined) t.accountId = null;
+    if(t.type === "transfer" && t.transferCatId === undefined) t.transferCatId = null;
+  }
+
   return data;
 }
 
@@ -1200,8 +1324,8 @@ function SavingsHistoryModal(props){
   }
 
   return (
-    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={props.onClose}>
-      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px 44px",maxHeight:"90vh",overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(17,24,39,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",overscrollBehavior:"contain"}} onClick={props.onClose}>
+      <div onClick={stop} style={{width:"100%",maxWidth:480,background:C.surface,borderRadius:"24px 24px 0 0",padding:"18px 20px calc(env(safe-area-inset-bottom, 0px) + 60px)",maxHeight:"85vh",overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
         <div style={{width:36,height:4,background:C.border,borderRadius:2,margin:"0 auto 14px"}}/>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
           <Icon name="piggy" size={22} color={C.green}/>
@@ -1701,7 +1825,7 @@ export default function App(){
   return (
     <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"'DM Sans','Helvetica Neue','Hiragino Sans',sans-serif",paddingBottom:130}}>
       {(showAdd || editTxState) && <AddModal cats={cats} accounts={accounts} prefillDate={(tab===2 && calDay) ? (vYear+"-"+String(vMonth+1).padStart(2,"0")+"-"+String(calDay).padStart(2,"0")) : TODAY_STR} editTx={editTxState} onSave={saveTx} onDelete={deleteTx} onClose={closeAddTx}/>}
-      {(showSubModal || editSub) && <SubModal sub={editSub} cats={cats} onSave={saveSub} onDelete={deleteSub} onClose={closeSubModal}/>}
+      {(showSubModal || editSub) && <SubModal sub={editSub} cats={cats} accounts={accounts} onSave={saveSub} onDelete={deleteSub} onClose={closeSubModal}/>}
       {(showAccountModal || editAccount) && <AccountModal account={editAccount} onSave={saveAccount} onDelete={deleteAccount} onClose={closeAccountModal}/>}
       {(showCatModal || editCat) && <CatModal cat={editCat} onSave={saveCat} onDelete={deleteCat} onClose={closeCatModal}/>}
       {showSavingsHistory && <SavingsHistoryModal accounts={accounts} txs={txs} onClose={function(){setShowSavingsHistory(false);}}/>}
@@ -1772,7 +1896,7 @@ export default function App(){
             <CollapsibleSection iconName="repeat" title={T.subscriptions} subtitle={subs.length+"件"} badge={fmtEur(subMonthlyTotal)}
               addButton={<button onClick={openAddSub} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px",borderRadius:10,border:"1.5px dashed "+C.blueLight,background:C.blueDim,color:C.blue,fontSize:13,fontWeight:600,cursor:"pointer"}}><Icon name="plus" size={14} color={C.blue}/>{T.addSub}</button>}>
               {subs.map(function(s){
-                return <SubRow key={s.id} sub={s} onEdit={function(){openEditSub(s);}}/>;
+                return <SubRow key={s.id} sub={s} accounts={accounts} onEdit={function(){openEditSub(s);}}/>;
               })}
             </CollapsibleSection>
 
@@ -1800,7 +1924,6 @@ export default function App(){
                         <span style={{fontSize:13,fontWeight:700,color:C.text}}>{acc.name}</span>
                         {acc.isSavings && <span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:99,background:C.greenBg,color:C.green}}>貯金</span>}
                       </div>
-                      <div style={{fontSize:11,color:C.textMuted}}>{acc.bank}</div>
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{fontSize:14,fontWeight:800,color:acc.color}}>{fmtEur(acc.balance)}</div>
@@ -1953,7 +2076,7 @@ export default function App(){
                       })}
                       {/* Subs in this split that have no catId */}
                       {splitSubs.filter(function(s){return !s.catId;}).map(function(sub){
-                        return <SubRow key={sub.id} sub={sub} onEdit={function(){openEditSub(sub);}}/>;
+                        return <SubRow key={sub.id} sub={sub} accounts={accounts} onEdit={function(){openEditSub(sub);}}/>;
                       })}
                       {!hasSplit && <div style={{padding:"14px 16px",fontSize:12,color:C.textMuted}}>カテゴリーやサブスクをこのグループに振り分けるには、カテゴリー設定で予算配分を変更してください。</div>}
                     </CollapsibleSection>
@@ -2027,47 +2150,61 @@ export default function App(){
             <CollapsibleSection iconName="piggy" title="残高初期設定" subtitle="アプリ開始時の残高を一括入力">
               <div style={{padding:"14px 16px"}}>
                 <div style={{fontSize:12,color:C.textMid,marginBottom:14,lineHeight:1.6}}>
-                  各資産の名称や残高をここで編集できます。資産を追加・削除することも可能です。
+                  各純資産の名称や残高をここで編集できます。純資産を追加・削除することも可能です。
                 </div>
                 {accounts.map(function(acc, idx){
                   return (
                     <div key={acc.id} style={{padding:"10px 0",borderTop:idx>0?"1px solid "+C.border:"none"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <button onClick={function(){openEditAccount(acc);}} style={{width:34,height:34,borderRadius:10,background:acc.color+"18",border:"1.5px solid "+acc.color+"30",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer"}}>
                           <Icon name={acc.isSavings?"piggy":"bank"} size={16} color={acc.color}/>
                         </button>
                         <input type="text" value={acc.name} onChange={function(e){
                           var v = e.target.value;
                           setAccounts(accounts.map(function(a){return a.id===acc.id ? Object.assign({},a,{name:v}) : a;}));
-                        }} placeholder="資産名" style={{flex:1,background:C.surfaceAlt,border:"1.5px solid "+C.border,color:C.text,fontFamily:"inherit",outline:"none",borderRadius:8,padding:"7px 10px",fontSize:13,fontWeight:600,minWidth:0}}/>
+                        }} placeholder="金融機関・カード名" style={{flex:1,background:C.surfaceAlt,border:"1.5px solid "+C.border,color:C.text,fontFamily:"inherit",outline:"none",borderRadius:8,padding:"7px 10px",fontSize:13,fontWeight:600,minWidth:0}}/>
                         <button onClick={function(){
-                          if(confirm("この資産を削除しますか？")){
+                          if(confirm("この純資産を削除しますか？")){
                             setAccounts(accounts.filter(function(a){return a.id !== acc.id;}));
                           }
                         }} style={{width:30,height:30,borderRadius:8,border:"1px solid "+C.red+"33",background:C.redBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
                           <Icon name="trash" size={13} color={C.red}/>
                         </button>
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:8,paddingLeft:44}}>
-                        <input type="text" value={acc.bank||""} onChange={function(e){
-                          var v = e.target.value;
-                          setAccounts(accounts.map(function(a){return a.id===acc.id ? Object.assign({},a,{bank:v}) : a;}));
-                        }} placeholder="銀行名・備考（任意）" style={{flex:1,background:C.surfaceAlt,border:"1.5px solid "+C.border,color:C.textMid,fontFamily:"inherit",outline:"none",borderRadius:8,padding:"6px 10px",fontSize:11,minWidth:0}}/>
-                        <input type="number" step="0.01" value={acc.balance} onChange={function(e){
-                          var v = parseFloat(e.target.value) || 0;
-                          setAccounts(accounts.map(function(a){return a.id===acc.id ? Object.assign({},a,{balance:v}) : a;}));
-                        }} style={{width:100,background:C.surfaceAlt,border:"1.5px solid "+C.border,color:C.text,fontFamily:"inherit",outline:"none",borderRadius:8,padding:"6px 8px",fontSize:13,textAlign:"right",fontWeight:700}}/>
+                      <div style={{display:"flex",alignItems:"center",gap:8,paddingLeft:44,marginTop:8}}>
+                        <span style={{fontSize:11,color:C.textMuted,flex:1}}>初期残高</span>
+                        <BalanceInput
+                          value={acc.initialBalance}
+                          onChange={function(v){
+                            setAccounts(accounts.map(function(a){
+                              if(a.id !== acc.id) return a;
+                              var oldInit = a.initialBalance || 0;
+                              var delta = v - oldInit;
+                              // Apply the difference to current balance as well
+                              // This way: changing initial balance updates current balance by the same delta,
+                              // but expenses/income only affect balance (not initialBalance)
+                              return Object.assign({}, a, {
+                                initialBalance: v,
+                                balance: (a.balance || 0) + delta
+                              });
+                            }));
+                          }}
+                          style={{width:120,background:C.surfaceAlt,border:"1.5px solid "+C.border,color:C.text,fontFamily:"inherit",outline:"none",borderRadius:8,padding:"6px 10px",fontSize:13,textAlign:"right",fontWeight:700}}
+                        />
                         <span style={{fontSize:11,color:C.textMid}}>€</span>
                       </div>
                     </div>
                   );
                 })}
                 <button onClick={openAddAccount} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px",borderRadius:10,border:"1.5px dashed "+C.blueLight,background:C.blueDim,color:C.blue,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:12}}>
-                  <Icon name="plus" size={13} color={C.blue}/>資産を追加
+                  <Icon name="plus" size={13} color={C.blue}/>純資産を追加
                 </button>
                 <div style={{marginTop:14,padding:"10px 12px",background:C.blueDim,borderRadius:10,fontSize:11,color:C.blue,fontWeight:600,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span>合計資産</span>
-                  <span style={{fontSize:14,fontWeight:800}}>{fmtEur(totalAssets)}</span>
+                  <span>初期残高合計</span>
+                  <span style={{fontSize:14,fontWeight:800}}>{fmtEur(accounts.reduce(function(s,a){return s+(a.initialBalance||0);},0))}</span>
+                </div>
+                <div style={{marginTop:8,padding:"8px 12px",background:C.surfaceAlt,borderRadius:8,fontSize:10,color:C.textMuted,lineHeight:1.5}}>
+                  ※ 初めて入力した金額は各純資産の現在残高にも反映されます。2回目以降の変更は記録上の初期値のみが変わり、現在残高には影響しません。
                 </div>
               </div>
             </CollapsibleSection>
@@ -2163,6 +2300,18 @@ export default function App(){
                 </div>
               </Card>
             )}
+
+            {/* App version info */}
+            <div style={{marginTop:24,marginBottom:8,textAlign:"center"}}>
+              <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 16px",background:C.surface,border:"1px solid "+C.border,borderRadius:12}}>
+                <Icon name="wallet" size={16} color={C.blue}/>
+                <div style={{textAlign:"left"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.text,letterSpacing:1}}>yoi</div>
+                  <div style={{fontSize:10,color:C.textMuted}}>バージョン {APP_VERSION}</div>
+                </div>
+              </div>
+              <div style={{fontSize:9,color:C.textMuted,marginTop:6}}>データフォーマット v{DATA_VERSION}</div>
+            </div>
           </div>
         </div>
       )}
